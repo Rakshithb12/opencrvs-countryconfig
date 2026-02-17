@@ -30,5 +30,5 @@ all:
 
 backups-host:
   hosts:
-    ip-172-31-15-58: # @todo set this to be the hostname of your backup server
-      ansible_host: '3.7.68.129'
+    ip-10-0-1-202: # @todo set this to be the hostname of your backup server
+      ansible_host: '13.201.37.34'
