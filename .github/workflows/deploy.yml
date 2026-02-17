@@ -70,10 +70,13 @@ jobs:
           echo -e $message | tee -a $GITHUB_STEP_SUMMARY
           echo "image_tag=$image_tag" >> $GITHUB_ENV
 
-      - name: Add SSH known hosts   # ADD HERE
+      - name: Read known hosts
+        working-directory: ${{ github.event.repository.name }}
         run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -p 22 ${{ vars.SSH_HOST || secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          echo "KNOWN_HOSTS<<EOF" >> $GITHUB_ENV
+          sed -i -e '$a\' ./infrastructure/known-hosts
+          cat ./infrastructure/known-hosts >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Install SSH Key
         uses: shimataro/ssh-key-action@v2
