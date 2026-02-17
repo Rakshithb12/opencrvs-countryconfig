@@ -12,9 +12,9 @@ all:
     users:
       # @todo this is where you define which development team members have access to the server.
       # If you need to remove access from someone, do not remove them from this list, but instead set their state: absent
-      - name: ubuntu
+      - name: provision
         ssh_keys:
-          - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCxbBHKjmsmN63ofGIX6vCqSI6kTYiSXianoag5IiK3xVNQIzexmRcMQcxJf8++97RHlXPhq9D+4tfPl2qufX/KoKUVpHFCfdo1H+fAGP2fxvf9eDX5PnFZlkkMguJkUEjRjV4JcdyEgzkUYh8MIN/krpWO5iVgPRGaw2c05JoXv0NJZPn2ZzMwwxoUhVb2syduKP5qJGIyRghc4Ho9m2FRs9fCdMLZzEFQrnLv516dgDrgN1iMUZloHRyOzODEgTmtxphDIqUmOA55vTU39RkxS9QgGFHu65rYtfSL5VNf6IQpIO/eUubXBc+zHwBi/PuGIc8wNWkg+1qJwAWiNYfd Mosip-Cluster
+          - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIER7p5Zt4UvYlbExuoqnuKsp9VgkVN+eqw7l7i5kYRAu provision@ip-10-0-1-202
         state: present
         sudoer: true
 
@@ -22,7 +22,6 @@ docker-manager-first:
   hosts:
     ip-10-0-1-202: # @todo set this to be the hostname of your target server
       ansible_host: '13.201.37.34' # @todo set this to be the IP address of your server
-      ansible_user: ubuntu
       # ansible_port: '23' # @todo set this to be the SSH port if it's not 22
       # internal_ssh_port: '22' # @todo if you are port-forwarding and server SSH port is not the same as ansible_port, set it here
       data_label: data1 # for manager machines, this should always be "data1"
