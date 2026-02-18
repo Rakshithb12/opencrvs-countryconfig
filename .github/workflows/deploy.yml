@@ -76,15 +76,6 @@ jobs:
         run: |
           echo "----- Known Hosts File -----"
           cat ./infrastructure/known-hosts
-          git branch
-
-      - name: Read known hosts
-        working-directory: ${{ github.event.repository.name }}
-        run: |
-          echo "KNOWN_HOSTS<<EOF" >> $GITHUB_ENV
-          sed -i -e '$a\' ./infrastructure/known-hosts
-          cat ./infrastructure/known-hosts >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
 
 
      
