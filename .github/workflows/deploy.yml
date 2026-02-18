@@ -74,17 +74,24 @@ jobs:
         run: |
           mkdir -p ~/.ssh
       
-          # Write private key
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          # Write private key safely
+          printf "%s\n" "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
       
-          # Add remote host fingerprint safely
-          ssh-keyscan -p ${{ vars.SSH_PORT || secrets.SSH_PORT }} -H ${{ vars.SSH_HOST || secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          # Remove any old entries first
+          ssh-keygen -R "${{ vars.SSH_HOST || secrets.SSH_HOST }}" || true
+      
+          # Add ALL host key types
+          ssh-keyscan -p ${{ vars.SSH_PORT || secrets.SSH_PORT }} \
+            -t rsa,ecdsa,ed25519 \
+            ${{ vars.SSH_HOST || secrets.SSH_HOST }} \
+            >> ~/.ssh/known_hosts
+      
           chmod 600 ~/.ssh/known_hosts
       
-          # Optional: Debug info (safe)
-          echo "SSH configuration:"
-          ls -la ~/.ssh
+          echo "Final known_hosts:"
+          cat ~/.ssh/known_hosts
+
 
 
       - name: Login to DockerHub
