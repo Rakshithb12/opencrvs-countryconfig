@@ -74,33 +74,38 @@ jobs:
         run: |
           mkdir -p ~/.ssh
       
-          # Write private key safely
           printf "%s\n" "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
       
-          # Clean old host entries
-          ssh-keygen -R "${{ vars.SSH_HOST || secrets.SSH_HOST }}" || true
+          HOST_IP="${{ vars.SSH_HOST || secrets.SSH_HOST }}"
+          HOST_DOMAIN="${{ vars.DOMAIN }}"
+          PORT="${{ vars.SSH_PORT || secrets.SSH_PORT }}"
       
-          # Add host keys (all types)
-          ssh-keyscan -p ${{ vars.SSH_PORT || secrets.SSH_PORT }} \
-            -t rsa,ecdsa,ed25519 \
-            ${{ vars.SSH_HOST || secrets.SSH_HOST }} \
-            >> ~/.ssh/known_hosts
+          # Remove old entries
+          ssh-keygen -R "$HOST_IP" || true
+          ssh-keygen -R "$HOST_DOMAIN" || true
+      
+          # Add IP
+          ssh-keyscan -p $PORT -t rsa,ecdsa,ed25519 $HOST_IP >> ~/.ssh/known_hosts
+      
+          # Add DOMAIN (this is what rsync is using)
+          ssh-keyscan -p $PORT -t rsa,ecdsa,ed25519 $HOST_DOMAIN >> ~/.ssh/known_hosts
       
           chmod 600 ~/.ssh/known_hosts
       
-          # Force SSH config so rsync uses correct identity + host file
           cat <<EOF > ~/.ssh/config
           Host *
             IdentityFile ~/.ssh/id_rsa
             StrictHostKeyChecking yes
             UserKnownHostsFile ~/.ssh/known_hosts
-            Port ${{ vars.SSH_PORT || secrets.SSH_PORT }}
+            Port $PORT
           EOF
       
           chmod 600 ~/.ssh/config
       
-          echo "SSH ready"
+          echo "Trusted hosts:"
+          cat ~/.ssh/known_hosts
+
 
 
 
@@ -145,12 +150,23 @@ jobs:
       - name: Update OpenCRVS known-hosts file
         working-directory: ${{ github.event.repository.name }}
         run: |
-          ssh-keyscan -p ${{ vars.SSH_PORT || secrets.SSH_PORT }} \
-            -H ${{ vars.SSH_HOST || secrets.SSH_HOST }} \
-            > infrastructure/known-hosts
+          HOST_IP="${{ vars.SSH_HOST || secrets.SSH_HOST }}"
+          HOST_DOMAIN="${{ vars.DOMAIN }}"
+          PORT="${{ vars.SSH_PORT || secrets.SSH_PORT }}"
+      
+          rm -f infrastructure/known-hosts
+      
+          # Add IP
+          ssh-keyscan -p $PORT -H -t rsa,ecdsa,ed25519 $HOST_IP \
+            >> infrastructure/known-hosts
+      
+          # Add domain (this is critical)
+          ssh-keyscan -p $PORT -H -t rsa,ecdsa,ed25519 $HOST_DOMAIN \
+            >> infrastructure/known-hosts
       
           echo "Updated infrastructure/known-hosts:"
           cat infrastructure/known-hosts
+
     
 
       - name: Deploy to ${{ inputs.environment }}
