@@ -75,7 +75,8 @@ jobs:
         working-directory: ${{ github.event.repository.name }}
         run: |
           echo "----- Known Hosts File -----"
-          cat ./infrastructure/known-hosts    
+          cat ./infrastructure/known-hosts
+          git branch
 
       - name: Read known hosts
         working-directory: ${{ github.event.repository.name }}
