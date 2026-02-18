@@ -72,6 +72,7 @@ jobs:
 
             
       - name: Debug known_hosts file
+        working-directory: ${{ github.event.repository.name }}
         run: |
           echo "----- Known Hosts File -----"
           cat ./infrastructure/known-hosts    
