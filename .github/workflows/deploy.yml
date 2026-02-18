@@ -125,6 +125,17 @@ jobs:
         with:
           node-version-file: ${{ github.event.repository.name }}/.nvmrc
 
+      - name: Update OpenCRVS known-hosts file
+        working-directory: ${{ github.event.repository.name }}
+        run: |
+          ssh-keyscan -p ${{ vars.SSH_PORT || secrets.SSH_PORT }} \
+            -H ${{ vars.SSH_HOST || secrets.SSH_HOST }} \
+            > infrastructure/known-hosts
+      
+          echo "Updated infrastructure/known-hosts:"
+          cat infrastructure/known-hosts
+    
+
       - name: Deploy to ${{ inputs.environment }}
         id: deploy
         working-directory: ${{ github.event.repository.name }}
