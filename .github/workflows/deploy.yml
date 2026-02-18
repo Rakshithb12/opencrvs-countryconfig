@@ -70,19 +70,10 @@ jobs:
           echo -e $message | tee -a $GITHUB_STEP_SUMMARY
           echo "image_tag=$image_tag" >> $GITHUB_ENV
 
-      - name: Test SSH Connection
-        run: |
-          echo "Testing SSH connection..."
-          ssh -v \
-            -o StrictHostKeyChecking=yes \
-            -p ${{ vars.SSH_PORT || secrets.SSH_PORT }} \
-            ${{ secrets.SSH_USER }}@${{ vars.SSH_HOST || secrets.SSH_HOST }} \
-            "echo SSH connection successful"
             
       - name: Debug known_hosts file
         run: |
           echo "----- Known Hosts File -----"
-          cat ~/.ssh/known_hosts || echo "No known_hosts file found"
           cat ./infrastructure/known-hosts    
 
       - name: Read known hosts
