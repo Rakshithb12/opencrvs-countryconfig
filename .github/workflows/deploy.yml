@@ -53,23 +53,6 @@ jobs:
       - name: Checkout core branch ${{ inputs.core-image-tag }}
         working-directory: opencrvs-core
         run: git checkout ${{ inputs.core-image-tag }}
-
-      - name: Resolve image tags
-        working-directory: ${{ github.event.repository.name }}
-        run: |
-          if [ '${{ inputs.countryconfig-image-tag }}' == 'latest' ] || [ '${{ inputs.countryconfig-image-tag }}' == '' ]
-          then
-            image_tag=`git rev-parse --short=7 HEAD`
-            message="⚠️ You haven't provided country config image tag, using latest git hash as image tag."
-            message="$message Please make sure image with tag was built and pushed to your registry"
-          else
-            image_tag=${{ inputs.countryconfig-image-tag }}
-          fi
-
-          message="Core image tag: ${{ inputs.core-image-tag }} \n\nCountry config image tag: $image_tag \n\n $message"
-          echo -e $message | tee -a $GITHUB_STEP_SUMMARY
-          echo "image_tag=$image_tag" >> $GITHUB_ENV
-
             
       - name: Debug known_hosts file
         working-directory: ${{ github.event.repository.name }}
