@@ -26,9 +26,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: ${{
-          (inputs.build_arm == true && fromJSON('["ubuntu-24.04", "ubuntu-24.04-arm"]')) ||
-          fromJSON('["ubuntu-24.04"]')
+        runner: ${{ 
+          (inputs.build_arm == true && fromJSON('["ubuntu-24.04", "ubuntu-24.04-arm"]')) || 
+          fromJSON('["ubuntu-24.04"]') 
           }}
     outputs:
       version: ${{ steps.country_config.outputs.version }}
@@ -68,24 +68,23 @@ jobs:
           else
             echo "version=${GIT_HASH}-amd64" >> $GITHUB_OUTPUT
           fi
-
       - name: Build and push countryconfig image
         uses: docker/build-push-action@v6
         with:
           push: true
+          provenance: false
           context: .
           tags: |
             ${{ secrets.DOCKERHUB_ACCOUNT}}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.country_config.outputs.version }}
-
       - name: Build and push assets image
         uses: docker/build-push-action@v6
         with:
           push: true
+          provenance: false
           context: .
           file: ./Dockerfile.assets
           tags: |
             ${{ secrets.DOCKERHUB_ACCOUNT}}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.country_config.outputs.version }}-assets
-
   merge-manifest:
     needs: [build]
     runs-on: ubuntu-latest
@@ -103,7 +102,7 @@ jobs:
         run: |
           TAG="${{ needs.build.outputs.version_common }}"
           REPO="${{ secrets.DOCKERHUB_ACCOUNT}}/${{ secrets.DOCKERHUB_REPO }}"
-
+          
           # Create manifest list based on whether ARM build exists
           if [[ "$BUILD_ARM" == "true" ]]; then
             MANIFEST_LIST="$REPO:$TAG-amd64 $REPO:$TAG-arm64"
@@ -112,7 +111,7 @@ jobs:
             MANIFEST_LIST="$REPO:$TAG-amd64"
             ASSETS_MANIFEST_LIST="$REPO:$TAG-amd64-assets"
           fi
-
+          
           echo "[🔁 pushing ] $REPO:$TAG"
           docker manifest create $REPO:$TAG \
              $MANIFEST_LIST
