@@ -80,14 +80,28 @@
       when: worker_swarm_status.stdout == 'active' and worker_node_id.stdout not in manager_node_ids.stdout_lines
       tags: 
         - swarm
+        
+   # ✅ NEW: ensure clean state only if needed
+    - name: Leave existing swarm if part of same swarm (safe reset)
+      shell: docker swarm leave --force
+      when: worker_swarm_status.stdout == 'active'
+      ignore_errors: yes
+      tags:
+        - swarm
 
+    # ✅ UPDATED: safer join with retry + proper hostvars usage
     - name: Join as a worker
-      shell: "docker swarm join --token {{ hostvars[manager_hostname]['worker_token']['stdout'] }} {{ hostvars[manager_hostname]['ansible_default_ipv4']['address'] }}:2377"
-      when: worker_swarm_status.stdout != 'active'
+      shell: >
+        docker swarm join
+        --token {{ hostvars[manager_hostname].worker_token.stdout }}
+        {{ hostvars[manager_hostname].ansible_default_ipv4.address }}:2377
+      register: join_result
       retries: 3
       delay: 20
-      tags: 
+      until: join_result.rc == 0
+      tags:
         - swarm
+        
 
 - hosts: docker-manager-first
   become: yes
