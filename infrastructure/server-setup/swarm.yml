@@ -89,18 +89,22 @@
       tags:
         - swarm
 
-    # ✅ UPDATED: safer join with retry + proper hostvars usage
-    - name: Join as a worker
-      shell: >
-        docker swarm join
-        --token {{ hostvars[manager_hostname].worker_token.stdout }}
-        {{ hostvars[manager_hostname].ansible_default_ipv4.address }}:2377
-      register: join_result
-      retries: 3
-      delay: 20
-      until: join_result.rc == 0
-      tags:
-        - swarm
+   # ✅ Join safely (ignore "already part" error)
+- name: Join as a worker
+  shell: >
+    docker swarm join
+    --token {{ hostvars[manager_hostname].worker_token.stdout }}
+    {{ hostvars[manager_hostname].ansible_default_ipv4.address }}:2377
+  register: join_result
+  retries: 3
+  delay: 20
+  until: join_result.rc == 0 or
+         "already part of a swarm" in join_result.stderr
+  failed_when: >
+    join_result.rc != 0 and
+    "already part of a swarm" not in join_result.stderr
+  tags:
+    - swarm
         
 
 - hosts: docker-manager-first
