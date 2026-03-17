@@ -80,33 +80,14 @@
       when: worker_swarm_status.stdout == 'active' and worker_node_id.stdout not in manager_node_ids.stdout_lines
       tags: 
         - swarm
-        
-    # ✅ Always attempt leave (safe + idempotent)
-    - name: Ensure node is not part of any swarm (force reset)
-      shell: docker swarm leave --force
-      register: leave_result
-      changed_when: "'Node left the swarm' in leave_result.stdout"
-      failed_when: false
-      tags:
-        - swarm
-        
-       # ✅ Join safely (ignore "already part" error)
+
     - name: Join as a worker
-      shell: >
-        docker swarm join
-        --token {{ hostvars[manager_hostname].worker_token.stdout }}
-        {{ hostvars[manager_hostname].ansible_default_ipv4.address }}:2377
-      register: join_result
+      shell: "docker swarm join --token {{ hostvars[manager_hostname]['worker_token']['stdout'] }} {{ hostvars[manager_hostname]['ansible_default_ipv4']['address'] }}:2377"
+      when: worker_swarm_status.stdout != 'active'
       retries: 3
       delay: 20
-      until: join_result.rc == 0 or
-             "already part of a swarm" in join_result.stderr
-      failed_when: >
-        join_result.rc != 0 and
-        "already part of a swarm" not in join_result.stderr
-      tags:
+      tags: 
         - swarm
-        
 
 - hosts: docker-manager-first
   become: yes
