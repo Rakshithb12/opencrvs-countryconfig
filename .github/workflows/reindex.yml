@@ -38,19 +38,61 @@ jobs:
           ref: ${{ github.ref_name }}
           path: './${{ github.event.repository.name }}'
 
-      - name: Read known hosts
+      - name: Setup SSH
         run: |
-          cd ${{ github.event.repository.name }}
-          echo "KNOWN_HOSTS<<EOF" >> $GITHUB_ENV
-          sed -i -e '$a\' ./infrastructure/known-hosts
-          cat ./infrastructure/known-hosts >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.SSH_KEY }}
-          known_hosts: ${{ env.KNOWN_HOSTS }}
+          mkdir -p ~/.ssh
+      
+          printf "%s\n" "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+      
+          HOST_IP="${{ vars.SSH_HOST || secrets.SSH_HOST }}"
+          HOST_DOMAIN="${{ vars.DOMAIN }}"
+          PORT="${{ vars.SSH_PORT || secrets.SSH_PORT }}"
+      
+          # Remove old entries
+          ssh-keygen -R "$HOST_IP" || true
+          ssh-keygen -R "$HOST_DOMAIN" || true
+      
+          # Add IP
+          ssh-keyscan -p $PORT -t rsa,ecdsa,ed25519 $HOST_IP >> ~/.ssh/known_hosts
+      
+          # Add DOMAIN (this is what rsync is using)
+          ssh-keyscan -p $PORT -t rsa,ecdsa,ed25519 $HOST_DOMAIN >> ~/.ssh/known_hosts
+      
+          chmod 600 ~/.ssh/known_hosts
+      
+          cat <<EOF > ~/.ssh/config
+          Host *
+            IdentityFile ~/.ssh/id_rsa
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
+            Port $PORT
+          EOF
+      
+          chmod 600 ~/.ssh/config
+      
+          echo "Trusted hosts:"
+          cat ~/.ssh/known_hosts
+          
+      - name: Update OpenCRVS known-hosts file
+        working-directory: ${{ github.event.repository.name }}
+        run: |
+          HOST_IP="${{ vars.SSH_HOST || secrets.SSH_HOST }}"
+          HOST_DOMAIN="${{ vars.DOMAIN }}"
+          PORT="${{ vars.SSH_PORT || secrets.SSH_PORT }}"
+      
+          rm -f infrastructure/known-hosts
+      
+          # Add IP
+          ssh-keyscan -p $PORT -H -t rsa,ecdsa,ed25519 $HOST_IP \
+            >> infrastructure/known-hosts
+      
+          # Add domain (this is critical)
+          ssh-keyscan -p $PORT -H -t rsa,ecdsa,ed25519 $HOST_DOMAIN \
+            >> infrastructure/known-hosts
+      
+          echo "Updated infrastructure/known-hosts:"
+          cat infrastructure/known-hosts
 
       - name: Run reindex script in docker container
         run: |
