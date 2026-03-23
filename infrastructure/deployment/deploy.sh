@@ -291,31 +291,46 @@ cleanup_docker_images()
 docker_stack_deploy() {
   echo "Deploying this environment: $ENVIRONMENT_COMPOSE"
 
-  echo "Pulling all docker images. This might take a while"
+  echo "Pulling all docker images (with logs)..."
 
   EXISTING_IMAGES=$(configured_ssh "docker images --format '{{.Repository}}:{{.Tag}}'")
   IMAGE_TAGS_TO_DOWNLOAD=$(get_docker_tags_from_compose_files "$COMPOSE_FILES_USED")
 
   for tag in ${IMAGE_TAGS_TO_DOWNLOAD[@]}; do
     if [[ $EXISTING_IMAGES == *"$tag"* ]]; then
-      echo "$tag already exists on the machine. Skipping..."
+      echo "✅ $tag already exists. Skipping..."
       continue
     fi
 
-    echo "Downloading $tag"
+    echo "⬇️ Pulling $tag"
+
+    COUNT=0
+    MAX_RETRIES=5
 
     until configured_ssh "cd /opt/opencrvs && docker pull $tag"
     do
-      echo "Server failed to download $tag. Retrying..."
+      COUNT=$((COUNT+1))
+      echo "⚠️ Failed to pull $tag (attempt $COUNT)"
+
+      if [ $COUNT -ge $MAX_RETRIES ]; then
+        echo "❌ ERROR: Failed to pull $tag after $MAX_RETRIES attempts"
+        exit 1
+      fi
+
       sleep 5
-    done &
+    done
+
+    echo "✅ Successfully pulled $tag"
   done
-  wait
-  echo "Images are successfully downloaded"
-  echo "Updating docker swarm stack with new compose files"
+
+  echo "🎉 All images pulled successfully"
+
+  echo "🚀 Deploying Docker Swarm stack..."
 
   configured_ssh 'cd /opt/opencrvs && \
     docker stack deploy --prune -c '$(split_and_join " " " -c " "$(to_remote_paths $COMPOSE_FILES_USED)")' --with-registry-auth opencrvs'
+
+  echo "✅ Stack deploy command executed"
 }
 
 get_opencrvs_version() {
