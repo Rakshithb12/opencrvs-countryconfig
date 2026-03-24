@@ -301,9 +301,10 @@ docker_stack_deploy() {
   IMAGE_TAGS_TO_DOWNLOAD=$(get_docker_tags_from_compose_files "$COMPOSE_FILES_USED")
 
   echo "--------------------------------------------------"
-  echo "⬇️ Pulling Docker images in parallel"
+  echo "⬇️ Pulling Docker images (parallel limit: 4)"
   echo "--------------------------------------------------"
 
+  MAX_PARALLEL=4
   PIDS=()
 
   for tag in ${IMAGE_TAGS_TO_DOWNLOAD[@]}; do
@@ -328,6 +329,7 @@ docker_stack_deploy() {
           exit 1
         fi
 
+        echo "🔁 Retrying $tag in 5s..."
         sleep 5
       done
 
@@ -335,10 +337,21 @@ docker_stack_deploy() {
     ) &
 
     PIDS+=($!)
+
+    # Limit parallel jobs
+    if [ ${#PIDS[@]} -ge $MAX_PARALLEL ]; then
+      wait -n || {
+        echo "❌ One of the image pulls failed. Aborting deployment."
+        exit 1
+      }
+
+      # Refresh running PIDs (remove completed ones)
+      PIDS=($(jobs -rp))
+    fi
   done
 
   echo ""
-  echo "⏳ Waiting for all image pulls to complete..."
+  echo "⏳ Waiting for remaining image pulls..."
 
   for pid in "${PIDS[@]}"; do
     wait $pid || {
