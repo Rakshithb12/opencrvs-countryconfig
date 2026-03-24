@@ -33,14 +33,14 @@ all:
       # If you need to remove access from someone, do not remove them from this list, but instead set their state: absent
       - name: provision
         ssh_keys:
-          - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC1hSstIGxw41O9o6+UZOJABh/AuE0n0mFkK/rHueFem provision@ip-10-0-1-55
+          - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA9x8YAgqf2/MFGJ9/SISB0LnKHvaaEj2C+wj+BAK+16 provision@ip-10-0-1-241
         state: present
         sudoer: true
 
 docker-manager-first:
   hosts:
-    ip-10-0-1-55: # @todo set this to be the hostname of your target server
-      ansible_host: '13.201.39.160' # @todo set this to be the hostname of your target server
+    ip-10-0-1-241: # @todo set this to be the hostname of your target server
+      ansible_host: '13.232.247.227' # @todo set this to be the hostname of your target server
       data_label: data1
       # If you are using a jump server to access this environment, enter other SSH args here.
       # ansible_ssh_common_args: '-J jump@55.55.55.55 -o StrictHostKeyChecking=no' # @todo set this to be the IP address of your jump server
@@ -50,8 +50,9 @@ docker-manager-first:
 # If you are only using one production worker for very small countries or small pilot projects, replace with an empty block like so: docker-workers: {}
 docker-workers:
   hosts:
-    ip-10-0-1-52: # @todo set this to be the hostname of your target server
-      ansible_host: '65.0.17.176'
+    ip-10-0-1-78:: # @todo set this to be the hostname of your target server
+      ansible_host: '13.206.69.108'
+      data_label: data2
       # If you are using a jump server to access this environment, enter other SSH args here.
       # ansible_ssh_common_args: '-J jump@55.55.55.55 -o StrictHostKeyChecking=no'
 
