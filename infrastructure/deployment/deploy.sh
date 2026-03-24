@@ -1,3 +1,4 @@
+
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -289,104 +290,33 @@ cleanup_docker_images()
 }
 
 docker_stack_deploy() {
-  echo "=================================================="
-  echo "🚀 Starting Docker Stack Deployment"
-  echo "Environment: $ENV"
-  echo "=================================================="
+  echo "Deploying this environment: $ENVIRONMENT_COMPOSE"
 
-  echo "📦 Fetching existing images from server..."
+  echo "Pulling all docker images. This might take a while"
+
   EXISTING_IMAGES=$(configured_ssh "docker images --format '{{.Repository}}:{{.Tag}}'")
-
-  echo "📦 Resolving required image tags..."
   IMAGE_TAGS_TO_DOWNLOAD=$(get_docker_tags_from_compose_files "$COMPOSE_FILES_USED")
-
-  echo "--------------------------------------------------"
-  echo "⬇️ Pulling Docker images (parallel limit: 4)"
-  echo "--------------------------------------------------"
-
-  MAX_PARALLEL=4
-  PIDS=()
 
   for tag in ${IMAGE_TAGS_TO_DOWNLOAD[@]}; do
     if [[ $EXISTING_IMAGES == *"$tag"* ]]; then
-      echo "✅ $tag already exists. Skipping..."
+      echo "$tag already exists on the machine. Skipping..."
       continue
     fi
 
-    (
-      echo "⬇️ Pulling $tag"
+    echo "Downloading $tag"
 
-      COUNT=0
-      MAX_RETRIES=5
-
-      until configured_ssh "cd /opt/opencrvs && docker pull $tag"
-      do
-        COUNT=$((COUNT+1))
-        echo "⚠️ Failed $tag attempt $COUNT"
-
-        if [ $COUNT -ge $MAX_RETRIES ]; then
-          echo "❌ Failed: $tag"
-          exit 1
-        fi
-
-        echo "🔁 Retrying $tag in 5s..."
-        sleep 5
-      done
-
-      echo "✅ Done: $tag"
-    ) &
-
-    PIDS+=($!)
-
-    # Limit parallel jobs
-    if [ ${#PIDS[@]} -ge $MAX_PARALLEL ]; then
-      wait -n || {
-        echo "❌ One of the image pulls failed. Aborting deployment."
-        exit 1
-      }
-
-      # Refresh running PIDs (remove completed ones)
-      PIDS=($(jobs -rp))
-    fi
+    until configured_ssh "cd /opt/opencrvs && docker pull $tag"
+    do
+      echo "Server failed to download $tag. Retrying..."
+      sleep 5
+    done &
   done
-
-  echo ""
-  echo "⏳ Waiting for remaining image pulls..."
-
-  for pid in "${PIDS[@]}"; do
-    wait $pid || {
-      echo "❌ One of the image pulls failed. Aborting deployment."
-      exit 1
-    }
-  done
-
-  echo ""
-  echo "🎉 All images pulled successfully"
-
-  echo "--------------------------------------------------"
-  echo "🧹 Cleaning up unused Docker resources"
-  echo "--------------------------------------------------"
-  configured_ssh "/usr/bin/docker system prune -af | sudo tee -a /var/log/docker-prune.log > /dev/null"
-
-  echo ""
-  echo "--------------------------------------------------"
-  echo "🚀 Deploying Docker Swarm stack"
-  echo "--------------------------------------------------"
+  wait
+  echo "Images are successfully downloaded"
+  echo "Updating docker swarm stack with new compose files"
 
   configured_ssh 'cd /opt/opencrvs && \
-    docker stack deploy --prune \
-    -c '$(split_and_join " " " -c " "$(to_remote_paths $COMPOSE_FILES_USED)")' \
-    --with-registry-auth opencrvs'
-
-  if [ $? -ne 0 ]; then
-    echo "❌ ERROR: Docker stack deployment failed"
-    exit 1
-  fi
-
-  echo ""
-  echo "=================================================="
-  echo "✅ Docker stack deployed successfully"
-  echo "=================================================="
+    docker stack deploy --prune -c '$(split_and_join " " " -c " "$(to_remote_paths $COMPOSE_FILES_USED)")' --with-registry-auth opencrvs'
 }
 
 get_opencrvs_version() {
