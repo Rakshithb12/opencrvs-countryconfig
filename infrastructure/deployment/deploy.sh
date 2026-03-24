@@ -423,7 +423,7 @@ configured_ssh "/opt/opencrvs/infrastructure/setup-deploy-config.sh $HOST"
 
 rotate_secrets
 
-## cleanup_docker_images
+cleanup_docker_images
 
 docker_stack_deploy
 
